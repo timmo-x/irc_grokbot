@@ -1,4 +1,4 @@
-## Grok IRC Bot (H2)
+## Grok IRC Bot
 Edit the chat_grok.conf to your preferred liking.
 
 You may need to install requests: pip install requests
