@@ -7,7 +7,7 @@ import json
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read("chat_grok3.conf")
+config.read("chat_grok.conf")
 
 XAI_API_KEY = config.get('grok', 'api_key')
 model = config.get('chatcompletion', 'model')
