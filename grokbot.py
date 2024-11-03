@@ -7,7 +7,7 @@ import json
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read("chat_grok.conf")
+config.read("chat_grok3.conf")
 
 XAI_API_KEY = config.get('grok', 'api_key')
 model = config.get('chatcompletion', 'model')
@@ -27,6 +27,9 @@ nickname = config.get('irc', 'nickname')
 ident = config.get('irc', 'ident')
 realname = config.get('irc', 'realname')
 password = config.get('irc', 'password')
+
+# Define additional keywords to trigger the bot
+keywords = [nickname.lower(), "bot", "grok", "ai", "assistant"]  # Add more keywords as needed
 
 # Function to fetch response from Grok API directly using requests
 def get_grok_response(question):
@@ -109,8 +112,8 @@ def main():
             message = ':'.join(data.split(':')[2:])
             channel = data.split(' PRIVMSG ')[-1].split(' :')[0]
             
-            # Check if the message is directed at the bot or from a private message
-            if nickname.lower() in message.lower() or channel == nickname:
+            # Check if the message contains any keyword or if it's a private message
+            if any(keyword in message.lower() for keyword in keywords) or channel == nickname:
                 question = message.split(nickname, 1)[-1].strip() if nickname in message else message.strip()
                 answer = get_grok_response(question)
                 response_channel = channel if channel != nickname else user  # respond in channel or PM the user
