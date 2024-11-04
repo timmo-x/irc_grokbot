@@ -1,11 +1,17 @@
 ## x.ai Grok IRC Chat Bot
+Best darn IRC AI chat bot on the planet! xAI API doesn't hold back and is very candid unlike chatgpt.
+
 Edit the chat_grok.conf and keywords in the .py file to your preferred liking. Be sure to put the bot's nick in the keywords section as it only responds to keywords added.
+
+Memory can be increased or decreased by this line: def get_recent_memory(memory, identifier, limit=10):
 
 Replace xai-REDACTED with your API key found here: https://console.x.ai/
 
-Grok IRC Bot is a (kinda) fork of https://github.com/knrd1/chatgpt but using x.ai's less woke API and a few other subtle modifications catered for me.
+Grok IRC Bot is (kinda) forked from https://github.com/knrd1/chatgpt but using x.ai's less woke API and a few other huge modifications catered for my tastes.
 
 X's xAI SDK reference: https://docs.x.ai/api/integrations#openai-sdk
+
+Need help? /join #blackdeath-cult on irc.rizon.net. Just in case; it's music enthusiasts not a cult.
 
 Hail Elon! jeje j/k!
 
