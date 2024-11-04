@@ -8,3 +8,11 @@ Grok IRC Bot is a (kinda) fork of https://github.com/knrd1/chatgpt but using x.a
 X's xAI SDK reference: https://docs.x.ai/api/integrations#openai-sdk
 
 Hail Elon! jeje j/k!
+
+```bash
+pip3 install openai==0.28 pyshorteners
+mkdir -p grokbot
+vim grok001.conf # Edit context, server, channel, nickname, ident and realname
+vim grok001.py # Edit the file by adding the bot's nick and keywords
+screen -S grokbot # Add to a screen session
+python grok001.py # Run the bot and enjoy
