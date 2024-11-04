@@ -4,6 +4,7 @@ import ssl
 import time
 import requests
 import json
+import os
 
 # Load configuration
 config = configparser.ConfigParser()
@@ -26,24 +27,51 @@ channels = config.get('irc', 'channels').split(',')
 nickname = config.get('irc', 'nickname')
 ident = config.get('irc', 'ident')
 realname = config.get('irc', 'realname')
-password = config.get('irc', 'password')
 
 # Define keywords to trigger the bot
 keywords = ["bot", "grok", "ai", "assistant"]  # Add keywords here
 
+# Added memory file for storing conversation history! At least the last 10 chats.
+MEMORY_FILE = "chat_memory.json"
+
+# Load or initialize memory
+def load_memory():
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_memory(memory):
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(memory, f)
+
+# Retrieve recent memory context for a channel or user
+def get_recent_memory(memory, identifier, limit=10):
+    return memory.get(identifier, [])[-limit:]
+
+# Store a message in memory
+def add_to_memory(memory, identifier, role, content):
+    if identifier not in memory:
+        memory[identifier] = []
+    memory[identifier].append({"role": role, "content": content})
+    save_memory(memory)
+
 # Function to fetch response from Grok API directly using requests
-def get_grok_response(question):
+def get_grok_response(question, recent_memory):
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {XAI_API_KEY}",
         "Content-Type": "application/json"
     }
+    
+    # Build the conversation context
+    messages = [{"role": "system", "content": context}]
+    messages.extend(recent_memory)
+    messages.append({"role": "user", "content": question})
+
     data = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": context},
-            {"role": "user", "content": question}
-        ],
+        "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
         "top_p": top_p,
@@ -100,6 +128,7 @@ def connect_irc():
 # Main function to listen and respond
 def main():
     irc = connect_irc()
+    memory = load_memory()  # Load memory at start
     while True:
         data = irc.recv(4096).decode("UTF-8", errors="ignore")
         print(f"Received: {data}")
@@ -115,8 +144,19 @@ def main():
             # Check if the message contains any keyword
             if any(keyword in message.lower() for keyword in keywords):
                 question = message.strip()
-                answer = get_grok_response(question)
-                response_channel = channel if channel != nickname else user  # respond in channel or PM the user
+                
+                # Retrieve recent context for the channel or user
+                identifier = channel if channel != nickname else user
+                recent_memory = get_recent_memory(memory, identifier)
+                
+                answer = get_grok_response(question, recent_memory)
+                
+                # Store the interaction in memory
+                add_to_memory(memory, identifier, "user", question)
+                add_to_memory(memory, identifier, "assistant", answer)
+
+                # Respond in channel or private message
+                response_channel = channel if channel != nickname else user
                 irc.send(bytes(f"PRIVMSG {response_channel} :{answer}\n", "UTF-8"))
 
 if __name__ == "__main__":
