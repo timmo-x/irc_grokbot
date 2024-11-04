@@ -1,5 +1,5 @@
 ## x.ai Grok IRC Chat Bot
-Edit the chat_grok.conf and keywords in the .py file to your preferred liking.
+Edit the chat_grok.conf and keywords in the .py file to your preferred liking. Be sure to put the bot's nick in the keywords section as it only responds to keywords added.
 
 Replace xai-REDACTED with your API key found here: https://console.x.ai/
 
