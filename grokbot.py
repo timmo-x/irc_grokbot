@@ -31,7 +31,7 @@ realname = config.get('irc', 'realname')
 # Define keywords to trigger the bot
 keywords = ["bot", "grok", "ai", "assistant"]  # Add keywords here
 
-# Added memory file for storing conversation history! At least the last 10 chats.
+# Memory file for storing conversation history
 MEMORY_FILE = "chat_memory.json"
 
 # Load or initialize memory
@@ -155,9 +155,19 @@ def main():
                 add_to_memory(memory, identifier, "user", question)
                 add_to_memory(memory, identifier, "assistant", answer)
 
-                # Respond in channel or private message
+                # Split long responses if needed and handle incomplete sentences
                 response_channel = channel if channel != nickname else user
-                irc.send(bytes(f"PRIVMSG {response_channel} :{answer}\n", "UTF-8"))
+                answer_lines = answer.split('\n')
+                for line in answer_lines:
+                    # If line ends with a continuation character, split into parts
+                    if line.strip().endswith((':', ';', ',')):
+                        line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
+                        for part in line_parts:
+                            irc.send(bytes(f"PRIVMSG {response_channel} :{part}\n", "UTF-8"))
+                            time.sleep(1)  # Short delay between sends to avoid flooding
+                    else:
+                        irc.send(bytes(f"PRIVMSG {response_channel} :{line}\n", "UTF-8"))
+                        time.sleep(1)
 
 if __name__ == "__main__":
     main()
