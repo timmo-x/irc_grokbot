@@ -12,6 +12,7 @@ Hail Elon! jeje j/k!
 ```bash
 pip3 install openai==0.28 pyshorteners
 mkdir -p grokbot
+cd grokbot
 vim grok001.conf # Edit context, server, channel, nickname, ident and realname
 vim grok001.py # Edit the file by adding the bot's nick and keywords
 screen -S grokbot # Add to a screen session
