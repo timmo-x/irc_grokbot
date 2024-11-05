@@ -11,7 +11,7 @@ Grok IRC Bot is (kinda) forked from https://github.com/knrd1/chatgpt but using x
 
 X's xAI SDK reference: https://docs.x.ai/api/integrations#openai-sdk
 
-Need help? /join #blackdeath-cult on irc.rizon.net. Just in case; it's music enthusiasts not a cult.
+Need help? /join #s💀l on irc.undernet.org
 
 Hail Elon! jeje j/k!
 
