@@ -31,8 +31,9 @@ realname = config.get('irc', 'realname')
 # Define keywords to trigger the bot
 keywords = ["bot", "grok", "ai", "assistant"]  # Add keywords here
 
-# Memory file for storing conversation history
+# Memory files for storing conversation history and nicknames
 MEMORY_FILE = "chat_memory.json"
+NICKNAMES_FILE = "user_nicknames.json"
 
 # Load or initialize memory
 def load_memory():
@@ -45,6 +46,17 @@ def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f)
 
+# Load or initialize nickname tracking
+def load_nicknames():
+    if os.path.exists(NICKNAMES_FILE):
+        with open(NICKNAMES_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_nicknames(nicknames):
+    with open(NICKNAMES_FILE, "w") as f:
+        json.dump(nicknames, f)
+
 # Retrieve recent memory context for a channel or user
 def get_recent_memory(memory, identifier, limit=10):
     return memory.get(identifier, [])[-limit:]
@@ -55,6 +67,11 @@ def add_to_memory(memory, identifier, role, content):
         memory[identifier] = []
     memory[identifier].append({"role": role, "content": content})
     save_memory(memory)
+
+# Track a user nickname in the nicknames file
+def track_nickname(nicknames, identifier, nickname):
+    nicknames[identifier] = nickname
+    save_nicknames(nicknames)
 
 # Function to fetch response from Grok API directly using requests
 def get_grok_response(question, recent_memory):
@@ -125,10 +142,26 @@ def connect_irc():
             print(f"Connection failed: {e}")
             time.sleep(5)
 
+# Function to send a multi-line response to IRC
+def send_multi_line(irc, response_channel, message, max_length=400):
+    message_parts = message.splitlines()
+    for part in message_parts:
+        while part:
+            chunk = part[:max_length].strip()
+            if len(part) > max_length:
+                last_space = chunk.rfind(" ")
+                if last_space != -1:
+                    chunk = chunk[:last_space]
+            if chunk:
+                irc.send(bytes(f"PRIVMSG {response_channel} :{chunk}\n", "UTF-8"))
+            part = part[len(chunk):].strip()
+
 # Main function to listen and respond
 def main():
     irc = connect_irc()
-    memory = load_memory()  # Load memory at start
+    memory = load_memory()
+    nicknames = load_nicknames()  # Load nicknames at start
+    
     while True:
         data = irc.recv(4096).decode("UTF-8", errors="ignore")
         print(f"Received: {data}")
@@ -140,6 +173,9 @@ def main():
             user = data.split('!')[0][1:]
             message = ':'.join(data.split(':')[2:])
             channel = data.split(' PRIVMSG ')[-1].split(' :')[0]
+            
+            # Track user nickname when interacting with bot
+            track_nickname(nicknames, user, user)
             
             # Check if the message contains any keyword
             if any(keyword in message.lower() for keyword in keywords):
@@ -155,19 +191,9 @@ def main():
                 add_to_memory(memory, identifier, "user", question)
                 add_to_memory(memory, identifier, "assistant", answer)
 
-                # Split long responses if needed and handle incomplete sentences
+                # Respond in channel or private message
                 response_channel = channel if channel != nickname else user
-                answer_lines = answer.split('\n')
-                for line in answer_lines:
-                    # If line ends with a continuation character, split into parts
-                    if line.strip().endswith((':', ';', ',')):
-                        line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
-                        for part in line_parts:
-                            irc.send(bytes(f"PRIVMSG {response_channel} :{part}\n", "UTF-8"))
-                            time.sleep(1)  # Short delay between sends to avoid flooding
-                    else:
-                        irc.send(bytes(f"PRIVMSG {response_channel} :{line}\n", "UTF-8"))
-                        time.sleep(1)
+                send_multi_line(irc, response_channel, answer)
 
 if __name__ == "__main__":
     main()
