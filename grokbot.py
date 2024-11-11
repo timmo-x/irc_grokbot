@@ -31,9 +31,8 @@ realname = config.get('irc', 'realname')
 # Define keywords to trigger the bot
 keywords = ["bot", "grok", "ai", "assistant"]  # Add keywords here
 
-# Memory files for storing conversation history and nicknames
+# Memory file for storing conversation history
 MEMORY_FILE = "chat_memory.json"
-NICKNAMES_FILE = "user_nicknames.json"
 
 # Load or initialize memory
 def load_memory():
@@ -46,34 +45,18 @@ def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f)
 
-# Load or initialize nickname tracking
-def load_nicknames():
-    if os.path.exists(NICKNAMES_FILE):
-        with open(NICKNAMES_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_nicknames(nicknames):
-    with open(NICKNAMES_FILE, "w") as f:
-        json.dump(nicknames, f)
-
-# Retrieve recent memory context for a channel or user
-def get_recent_memory(memory, identifier, limit=10):
-    return memory.get(identifier, [])[-limit:]
+# Retrieve recent memory context for a user
+def get_recent_memory(memory, user, limit=10):
+    return memory.get(user, [])[-limit:]
 
 # Store a message in memory
-def add_to_memory(memory, identifier, role, content):
-    if identifier not in memory:
-        memory[identifier] = []
-    memory[identifier].append({"role": role, "content": content})
+def add_to_memory(memory, user, role, content):
+    if user not in memory:
+        memory[user] = []
+    memory[user].append({"role": role, "content": content})
     save_memory(memory)
 
-# Track a user nickname in the nicknames file
-def track_nickname(nicknames, identifier, nickname):
-    nicknames[identifier] = nickname
-    save_nicknames(nicknames)
-
-# Function to fetch response from Grok API directly using requests
+# Function to fetch response from Grok API with memory context
 def get_grok_response(question, recent_memory):
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
@@ -142,26 +125,10 @@ def connect_irc():
             print(f"Connection failed: {e}")
             time.sleep(5)
 
-# Function to send a multi-line response to IRC
-def send_multi_line(irc, response_channel, message, max_length=400):
-    message_parts = message.splitlines()
-    for part in message_parts:
-        while part:
-            chunk = part[:max_length].strip()
-            if len(part) > max_length:
-                last_space = chunk.rfind(" ")
-                if last_space != -1:
-                    chunk = chunk[:last_space]
-            if chunk:
-                irc.send(bytes(f"PRIVMSG {response_channel} :{chunk}\n", "UTF-8"))
-            part = part[len(chunk):].strip()
-
 # Main function to listen and respond
 def main():
     irc = connect_irc()
-    memory = load_memory()
-    nicknames = load_nicknames()  # Load nicknames at start
-    
+    memory = load_memory()  # Load memory at start
     while True:
         data = irc.recv(4096).decode("UTF-8", errors="ignore")
         print(f"Received: {data}")
@@ -174,26 +141,27 @@ def main():
             message = ':'.join(data.split(':')[2:])
             channel = data.split(' PRIVMSG ')[-1].split(' :')[0]
             
-            # Track user nickname when interacting with bot
-            track_nickname(nicknames, user, user)
-            
             # Check if the message contains any keyword
             if any(keyword in message.lower() for keyword in keywords):
                 question = message.strip()
                 
-                # Retrieve recent context for the channel or user
-                identifier = channel if channel != nickname else user
-                recent_memory = get_recent_memory(memory, identifier)
+                # Retrieve recent memory for the user
+                recent_memory = get_recent_memory(memory, user)
                 
                 answer = get_grok_response(question, recent_memory)
                 
                 # Store the interaction in memory
-                add_to_memory(memory, identifier, "user", question)
-                add_to_memory(memory, identifier, "assistant", answer)
+                add_to_memory(memory, user, "user", question)
+                add_to_memory(memory, user, "assistant", answer)
 
-                # Respond in channel or private message
+                # Split long responses and handle continuation, addressing user by nickname
                 response_channel = channel if channel != nickname else user
-                send_multi_line(irc, response_channel, answer)
+                answer_lines = answer.split('\n')
+                for line in answer_lines:
+                    line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
+                    for part in line_parts:
+                        irc.send(bytes(f"PRIVMSG {response_channel} :{user}: {part}\n", "UTF-8"))
+                        time.sleep(1)
 
 if __name__ == "__main__":
     main()
