@@ -3,7 +3,7 @@ Best darn IRC AI chat bot on the planet! xAI API doesn't hold back and is very c
 
 Edit the grok.conf and keywords in the .py file to your preferred liking. Be sure to put the bot's nick in the keywords section as it only responds to keywords you've added.
 
-Memory can be increased or decreased by this line: def get_recent_memory(memory, identifier, limit=10):
+Memory can be increased or decreased by: get_recent_memory(memory, user, limit=10)
 
 Replace xai-REDACTED with your API key found here: https://console.x.ai/
 
