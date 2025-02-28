@@ -1,15 +1,15 @@
 import configparser
 import socket
-import ssl  
-import time 
+import ssl
+import time
 import requests
-import json     
-import os       
+import json
+import os
 import random
-                
+
 config = configparser.ConfigParser()
 config.read("grok.conf")
-                        
+
 XAI_API_KEY = config.get('grok', 'api_key')
 model = config.get('chatcompletion', 'model')
 context = config.get('chatcompletion', 'context')
@@ -27,37 +27,40 @@ channels = config.get('irc', 'channels').split(',')
 nickname = config.get('irc', 'nickname')
 ident = config.get('irc', 'ident')
 realname = config.get('irc', 'realname')
-        
+
+# Define keywords to trigger the bot
 keywords = ["bot", "grok", "ai", "assistant"]  # Add keywords here
-            
+
+# Memory
 MEMORY_FILE = "chat_memory.json"
-            
+
 def load_memory():
     if os.path.exists(MEMORY_FILE):
         with open(MEMORY_FILE, "r") as f:
             return json.load(f)
-    return {}   
-                
+    return {}
+
 def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f)
-            
+
 def get_recent_memory(memory, user, limit=15):
     return memory.get(user, [])[-limit:]
-                
+
 def add_to_memory(memory, user, role, content):
     if user not in memory:
         memory[user] = []
     memory[user].append({"role": role, "content": content})
     save_memory(memory)
-                
+
 def get_grok_response(question, recent_memory):
     url = "https://api.x.ai/v1/chat/completions"
-    headers = { 
+    headers = {
         "Authorization": f"Bearer {XAI_API_KEY}",
         "Content-Type": "application/json"
-    }               
-                        
+    }
+
+    # Build the conversation
     messages = [{"role": "system", "content": context}]
     messages.extend(recent_memory)
     messages.append({"role": "user", "content": question})
@@ -109,14 +112,13 @@ def connect_irc():
                 data = irc.recv(4096).decode("UTF-8", errors="ignore")
                 print(f"Received: {data}")
 
-                if "001" in data:
+                if "001" in data: 
                     print("Successfully connected. Joining channels...")
                     for channel in channels:
                         irc.send(bytes(f"JOIN {channel}\n", "UTF-8"))
                         print(f"Joining channel: {channel}")
                     return irc
                 elif data.startswith("PING"):
-
                     irc.send(bytes(f"PONG {data.split()[1]}\n", "UTF-8"))
         except Exception as e:
             print(f"Connection failed: {e}")
@@ -124,8 +126,8 @@ def connect_irc():
 
 def main():
     irc = connect_irc()
-    memory = load_memory()
-    version_response = "IRC Grok Bot by m0n https://github.com/timmo-x/irc_grokbot"
+    memory = load_memory()  # Load memory at start
+    version_response = "IRC Grok Bot by m0n https://github.com/timmo-x/irc_grokbot" 
 
     while True:
         data = irc.recv(4096).decode("UTF-8", errors="ignore")
@@ -140,9 +142,10 @@ def main():
             channel = data.split(' PRIVMSG ')[-1].split(' :')[0]
 
             if message == "\001VERSION\001":
+                # Respond with a NOTICE containing the version string
                 irc.send(bytes(f"NOTICE {user} :\001VERSION {version_response}\001\n", "UTF-8"))
                 print(f"Sent CTCP VERSION response to {user}: {version_response}")
-                continue
+                continue  # Skip further processing for CTCP messages
 
             if any(keyword in message.lower() for keyword in keywords):
                 question = message.strip()
@@ -159,7 +162,7 @@ def main():
                 for line in answer_lines:
                     line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
                     for part in line_parts:
-                        delay = random.uniform(0, 5)
+                        delay = random.uniform(0, 4)
                         time.sleep(delay)
                         irc.send(bytes(f"PRIVMSG {response_channel} :{part}\n", "UTF-8"))
 
