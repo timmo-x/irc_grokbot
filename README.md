@@ -7,8 +7,6 @@ Memory can be increased or decreased by: get_recent_memory(memory, user, limit=1
 
 Replace xai-REDACTED with your API key found here: https://console.x.ai/
 
-Grok IRC Bot is (kinda) forked from https://github.com/knrd1/chatgpt but using x.ai's less woke API and a few other huge modifications catered for my tastes.
-
 X's xAI SDK reference: https://docs.x.ai/api/integrations#openai-sdk
 
 You may need a pretentious x.com premium account and blue check like I have to access Grok's API.
