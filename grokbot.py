@@ -127,6 +127,8 @@ def connect_irc():
 def main():
     irc = connect_irc()
     memory = load_memory()  # Load memory at start
+    chat_sessions = {}  # track user session timer
+    session_duration = 10 # 10 seconds session after keyword trigger
     version_response = "IRC Grok Bot by m0n https://github.com/timmo-x/irc_grokbot" 
 
     while True:
@@ -142,14 +144,25 @@ def main():
             channel = data.split(' PRIVMSG ')[-1].split(' :')[0]
 
             if message == "\001VERSION\001":
-                # Respond with a NOTICE containing the version string
                 irc.send(bytes(f"NOTICE {user} :\001VERSION {version_response}\001\n", "UTF-8"))
                 print(f"Sent CTCP VERSION response to {user}: {version_response}")
                 continue  # Skip further processing for CTCP messages
 
-            if any(keyword in message.lower() for keyword in keywords):
-                question = message.strip()
+            current_time = time.time()
 
+            # is session is active
+            active_session = user in chat_sessions and (current_time - chat_sessions[user] < session_duration)
+
+            # start a session on keyword
+            if any(keyword in message.lower() for keyword in keywords):
+                chat_sessions[user] = current_time  # start or reset session
+                active_session = True  
+
+            # if the session is active, keep it open as long as the user keeps yapping
+            if active_session:
+                chat_sessions[user] = current_time  # reset timer on every message
+
+                question = message.strip()
                 recent_memory = get_recent_memory(memory, user)
 
                 answer = get_grok_response(question, recent_memory)
@@ -159,12 +172,16 @@ def main():
 
                 response_channel = channel if channel != nickname else user
                 answer_lines = answer.split('\n')
+
                 for line in answer_lines:
                     line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
                     for part in line_parts:
                         delay = random.uniform(0, 4)
                         time.sleep(delay)
                         irc.send(bytes(f"PRIVMSG {response_channel} :{part}\n", "UTF-8"))
+
+            # if the user hasn't spoken for a few seconds, remove them from session
+            chat_sessions = {user: timestamp for user, timestamp in chat_sessions.items() if current_time - timestamp < session_duration}
 
 if __name__ == "__main__":
     main()
