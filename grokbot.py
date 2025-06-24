@@ -65,17 +65,20 @@ def get_grok_response(question, recent_memory):
     messages.extend(recent_memory)
     messages.append({"role": "user", "content": question})
 
+    # Base data payload
     data = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": max_tokens,
-        "top_p": top_p,
-        "frequency_penalty": frequency_penalty,
-        "presence_penalty": presence_penalty
+        "max_tokens": max_tokens
     }
 
-    # Debugging
+    if model not in ["grok-3-mini", "grok-3-mini-fast-beta"]:
+        data["top_p"] = top_p
+        data["frequency_penalty"] = frequency_penalty
+        data["presence_penalty"] = presence_penalty
+
+    # More debugging
     print("Payload:", json.dumps(data, indent=4))
 
     try:
@@ -126,9 +129,9 @@ def connect_irc():
 
 def main():
     irc = connect_irc()
-    memory = load_memory()  # Load memory at start
-    chat_sessions = {}  # track user session timer
-    session_duration = 10 # 10 seconds session after keyword trigger
+    memory = load_memory()
+    chat_sessions = {}
+    session_duration = 2
     version_response = "IRC Grok Bot by m0n https://github.com/timmo-x/irc_grokbot" 
 
     while True:
@@ -150,17 +153,14 @@ def main():
 
             current_time = time.time()
 
-            # is session is active
             active_session = user in chat_sessions and (current_time - chat_sessions[user] < session_duration)
 
-            # start a session on keyword
             if any(keyword in message.lower() for keyword in keywords):
-                chat_sessions[user] = current_time  # start or reset session
+                chat_sessions[user] = current_time
                 active_session = True  
 
-            # if the session is active, keep it open as long as the user keeps yapping
             if active_session:
-                chat_sessions[user] = current_time  # reset timer on every message
+                chat_sessions[user] = current_time
 
                 question = message.strip()
                 recent_memory = get_recent_memory(memory, user)
@@ -176,11 +176,10 @@ def main():
                 for line in answer_lines:
                     line_parts = [line[i:i+400] for i in range(0, len(line), 400)]
                     for part in line_parts:
-                        delay = random.uniform(0, 4)
+                        delay = random.uniform(0, 1)
                         time.sleep(delay)
                         irc.send(bytes(f"PRIVMSG {response_channel} :{part}\n", "UTF-8"))
 
-            # if the user hasn't spoken for a few seconds, remove them from session
             chat_sessions = {user: timestamp for user, timestamp in chat_sessions.items() if current_time - timestamp < session_duration}
 
 if __name__ == "__main__":
