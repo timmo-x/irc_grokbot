@@ -1,5 +1,5 @@
 ## x.ai Grok IRC Chat Bot
-Best darn IRC AI chat bot on the planet! xAI API doesn't hold back and is very candid unlike chatgpt.
+Best darn IRC AI chat bot on the planet! xAI API doesn't hold back and is very candid unlike others.
 
 Edit the grok.conf and keywords in the .py file to your preferred liking. Be sure to put the bot's nick in the keywords section as it only responds to keywords you've added.
 
@@ -9,11 +9,8 @@ Replace xai-REDACTED with your API key found here: https://console.x.ai/
 
 X's xAI SDK reference: https://docs.x.ai/api/integrations#openai-sdk
 
-You may need a pretentious x.com premium account and blue check like I have to access Grok's API.
+Need help? /join #canada on irc.rizon.net
 
-Need help? /join #s💀l on irc.undernet.org
-
-Hail Elon! jeje j/k!
 
 ```bash
 pip3 install openai==0.28 pyshorteners
