@@ -73,7 +73,7 @@ def get_grok_response(question, recent_memory):
         "max_tokens": max_tokens
     }
 
-    if model not in ["grok-3-mini", "grok-3-mini-fast-beta"]:
+    if model not in ["grok-4-fast-reasoning"]:
         data["top_p"] = top_p
         data["frequency_penalty"] = frequency_penalty
         data["presence_penalty"] = presence_penalty
