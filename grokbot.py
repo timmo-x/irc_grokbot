@@ -36,7 +36,6 @@ ident = config.get('irc', 'ident')
 realname = config.get('irc', 'realname')
 keywords = [k.strip() for k in config.get('irc', 'keywords').split(',')]
 ignore_file = config.get('irc', 'ignore_file')
-
 authorized_users = [u.strip() for u in config.get('security', 'authorized_users').split(',')]
 allowed_modes = [m.strip() for m in config.get('security', 'allowed_modes').split(',')]
 
@@ -56,7 +55,7 @@ def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f)
 
-def get_recent_memory(memory, user, limit=50):
+def get_recent_memory(memory, user, limit=20):
     return memory.get(user, [])[-limit:]
 
 def add_to_memory(memory, user, role, content):
@@ -70,7 +69,7 @@ def load_channel_logs():
     if os.path.exists(CHANNEL_LOG_FILE):
         with open(CHANNEL_LOG_FILE, "r") as f:
             logs = json.load(f)
-        one_day_ago = datetime.datetime.now() - datetime.timedelta(hours=72)
+        one_day_ago = datetime.datetime.now() - datetime.timedelta(hours=48)
         return [log for log in logs if datetime.datetime.fromisoformat(log["timestamp"]) > one_day_ago]
     return []
 
@@ -89,7 +88,7 @@ def add_to_channel_logs(channel, user, message):
             "message": message,
             "timestamp": timestamp.isoformat()
         })
-        logs = logs[-500:]
+        logs = logs[-100:]
         save_channel_logs(logs)
 # Clean citations for live search
 def clean_citations(text):
@@ -235,11 +234,11 @@ def get_grok_response(question, recent_memory, user_nickname):
                 break
 
     if is_summary:
-        relevant_logs = channel_logs[-50:]
+        relevant_logs = channel_logs[-20:]
     elif specific_user:
-        relevant_logs = [log for log in channel_logs if log["user"] == specific_user][-10:]
+        relevant_logs = [log for log in channel_logs if log["user"] == specific_user][-5:]
         if not relevant_logs:
-            relevant_logs = channel_logs[-25:]
+            relevant_logs = channel_logs[-10:]
     else:
         relevant_logs = [
             log for log in channel_logs
